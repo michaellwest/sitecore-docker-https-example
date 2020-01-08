@@ -17,7 +17,7 @@ services:
       - "--docker.exposedByDefault=false"
       - "--api"
       - "--entryPoints=Name:http Address::80 Redirect.EntryPoint:https"
-      - "--entryPoints=Name:https Address::443 TLS"
+      - "--entryPoints=Name:https Address::443 TLS:C:/certs/cert.cer,C:/certs/cert.key"
     ports:
       - "80:80"
       - "443:443"
@@ -26,6 +26,7 @@ services:
       - source: \\.\pipe\docker_engine
         target: \\.\pipe\docker_engine
         type: npipe
+      - .\certs:C:\certs
     depends_on:
       - solr
       - cm
@@ -45,16 +46,18 @@ services:
       - .\data\solr:C:\Data
     mem_limit: 1GB
     environment:
-      SOLR_LOG_LEVEL: INFO
+      SOLR_LOG_LEVEL: ERROR
     labels:
       - "traefik.enable=true"
       - "traefik.frontend.entryPoints=https"
-      - "traefik.frontend.rule=Host:solr.sitecore-https.local"
+      - "traefik.frontend.rule=Host:sitecore-https-solr.dev.local"
       - "traefik.port=8983"
 
   cm:
     image: ${REGISTRY}sitecore-xm-cm:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
     entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Development.ps1"
+    volumes:
+      - .\src:C:\src
     environment:
       SITECORE_LICENSE: ${SITECORE_LICENSE}
       SITECORE_APPSETTINGS_ROLE:DEFINE: ContentManagement, Indexing
@@ -76,5 +79,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.frontend.entryPoints=https"
-      - "traefik.frontend.rule=Host:cm.sitecore-https.local"
+      - "traefik.frontend.rule=Host:sitecore-https-cm.dev.local"
       - "traefik.passHostHeader=true"
+
+networks:
+  default:
+    external:
+      name: nat
